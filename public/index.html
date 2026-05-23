@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workaway Recording & Dashboard System</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js (Local Offline) -->
+  <script src="js/chart.umd.js"></script>
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="dark-theme">
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <i class="fa-solid fa-layer-group brand-icon"></i>
+        <div class="brand-text">
+          <h1>WORKAWAY</h1>
+          <span>BTA Production</span>
+        </div>
+      </div>
+      
+      <nav class="sidebar-menu">
+        <a href="#dashboard" class="menu-item active" id="nav-dashboard">
+          <i class="fa-solid fa-chart-line"></i>
+          <span>แดชบอร์ดสรุปผล</span>
+        </a>
+        <a href="#record" class="menu-item" id="nav-record">
+          <i class="fa-solid fa-pen-to-square"></i>
+          <span>บันทึกข้อมูลรายวัน</span>
+        </a>
+        <a href="#history" class="menu-item" id="nav-history">
+          <i class="fa-solid fa-table-list"></i>
+          <span>ประวัติและตัวกรอง</span>
+        </a>
+        <a href="#codes" class="menu-item" id="nav-codes">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>รหัสยาง & ข้อมูลระบบ</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="db-status-container">
+          <div class="status-indicator online"></div>
+          <div class="status-details">
+            <span class="status-title">สถานะระบบหลักบ้าน</span>
+            <span class="status-desc" id="db-path-display">กำลังเชื่อมต่อ...</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Bar Header -->
+      <header class="top-bar">
+        <div class="header-title">
+          <h2 id="page-title">แดชบอร์ดสรุปผล</h2>
+          <p id="page-subtitle" class="text-muted">วิเคราะห์ข้อมูลสถิติ Workaway รวม ยางรถยนต์ & ยางเครื่องบิน</p>
+        </div>
+        <div class="header-actions">
+          <div class="date-badge">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span id="current-time-display">24 May 2026</span>
+          </div>
+          <button class="theme-toggle-btn" id="theme-toggle">
+            <i class="fa-solid fa-sun"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- View Containers -->
+      <div class="view-content">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="view-dashboard" class="view-section active">
+          
+          <!-- KPI Summary Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card purple-glow">
+              <div class="kpi-icon">
+                <i class="fa-solid fa-boxes-stacked"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-label">ปริมาณยาง Workaway สะสม</span>
+                <h3 class="kpi-value" id="kpi-total-balance">0.0 <span class="unit">กก.</span></h3>
+                <span class="kpi-trend positive" id="kpi-total-in-out">เข้า 0 / ออก 0</span>
+              </div>
+            </div>
+
+            <div class="kpi-card blue-glow">
+              <div class="kpi-icon">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-label">ของใหม่ประจำวันนี้ (New)</span>
+                <h3 class="kpi-value" id="kpi-today-new">0.0 <span class="unit">กก.</span></h3>
+                <span class="kpi-trend text-muted" id="kpi-today-new-in-out">ยอดเข้าของใหม่วันนี้</span>
+              </div>
+            </div>
+
+            <div class="kpi-card orange-glow">
+              <div class="kpi-icon">
+                <i class="fa-solid fa-clipboard-question"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-label">รอตรวจสอบ (Disposition)</span>
+                <h3 class="kpi-value" id="kpi-disposition-pending">0.0 <span class="unit">กก.</span></h3>
+                <span class="kpi-trend warning" id="kpi-disposition-desc">รอตรวจวัดคุณภาพ</span>
+              </div>
+            </div>
+
+            <div class="kpi-card green-glow">
+              <div class="kpi-icon">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <div class="kpi-details">
+                <span class="kpi-label">เคลียร์ออกสะสมทั้งหมด</span>
+                <h3 class="kpi-value" id="kpi-total-out">0.0 <span class="unit">กก.</span></h3>
+                <span class="kpi-trend positive" id="kpi-clear-percentage">0% ของยอดนำเข้า</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Dashboard Grid -->
+          <div class="dashboard-grid">
+            <!-- Row 1: Trend and Top 10 -->
+            <div class="chart-container large">
+              <div class="chart-header">
+                <h4><i class="fa-solid fa-chart-area icon-accent"></i> แนวโน้มความก้าวหน้ารายวัน (15 วันล่าสุด)</h4>
+                <span class="text-muted">เปรียบเทียบยอด เข้า (IN) vs ออก (OUT) สะสมรายวัน</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chartTrend"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <div class="chart-header">
+                <h4><i class="fa-solid fa-crown icon-accent"></i> Top 10 รหัสยาง Workaway สูงสุด</h4>
+                <span class="text-muted">จัดอันดับตามน้ำหนักสะสมในระบบ (กก.)</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chartTop10"></canvas>
+              </div>
+            </div>
+
+            <!-- Row 2: Category and Breakdowns -->
+            <div class="chart-container">
+              <div class="chart-header">
+                <h4><i class="fa-solid fa-hourglass-half icon-accent"></i> สัดส่วนตามสถานะอายุของยาง</h4>
+                <span class="text-muted">เปรียบเทียบ New, 7 วัน, 7-14 วัน, >14 วัน, รอตรวจสอบ</span>
+              </div>
+              <div class="chart-wrapper">
+                <canvas id="chartCategories"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <div class="chart-header">
+                <h4><i class="fa-solid fa-hospital icon-accent"></i> ปริมาณรอตรวจสอบ (Disposition) แยกตามพื้นที่</h4>
+                <span class="text-muted">ยางที่รอตรวจวัดแยกตาม 7 พื้นที่การผลิต</span>
+              </div>
+              <div class="chart-wrapper animate-donut">
+                <canvas id="chartDisposition"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-container">
+              <div class="chart-header">
+                <h4><i class="fa-solid fa-warehouse icon-accent"></i> สัดส่วนแยกตามสถานที่จัดเก็บ</h4>
+                <span class="text-muted">ปริมาณยางที่อยู่ใน QUAD, TUBER, WA1, WA 2, WA3</span>
+              </div>
+              <div class="chart-wrapper animate-donut">
+                <canvas id="chartStorage"></canvas>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+
+        <!-- 2. RECORDING FORM VIEW -->
+        <section id="view-record" class="view-section">
+          
+          <div class="form-layout-container">
+            
+            <!-- Left Side: Interactive Key-in Card -->
+            <div class="form-card">
+              <div class="form-card-header">
+                <h3><i class="fa-solid fa-circle-plus header-icon-accent"></i> ป้อนข้อมูลบันทึกประจำวัน</h3>
+                <p class="text-muted">กรอกข้อมูลการผลิต นำเข้า/ส่งออก ประจำพื้นที่และสถานที่จัดเก็บ</p>
+              </div>
+              
+              <form id="workaway-form" autocomplete="off">
+                <div class="form-row-grid">
+                  <!-- Date input -->
+                  <div class="form-group">
+                    <label for="input-date"><i class="fa-solid fa-calendar-day"></i> วันที่ทำรายการ</label>
+                    <input type="date" id="input-date" required>
+                  </div>
+                  
+                  <!-- Production Area -->
+                  <div class="form-group">
+                    <label for="input-area"><i class="fa-solid fa-industry"></i> พื้นที่ฝ่ายผลิต (Area)</label>
+                    <select id="input-area" required>
+                      <option value="" disabled selected>-- เลือกพื้นที่ --</option>
+                      <option value="QUAD">เครื่อง QUAD</option>
+                      <option value="Tuber">Tuber</option>
+                      <option value="4roll2">4roll2</option>
+                      <option value="4roll1">4roll1</option>
+                      <option value="BTB-WBR">BTB-WBR</option>
+                      <option value="Sapphire">Sapphire</option>
+                      <option value="BTB-Aero">BTB-Aero</option>
+                    </select>
+                  </div>
+
+                  <!-- Storage Location -->
+                  <div class="form-group">
+                    <label for="input-storage"><i class="fa-solid fa-warehouse"></i> สถานที่จัดเก็บ (Storage)</label>
+                    <select id="input-storage" required>
+                      <option value="" disabled selected>-- เลือกสถานที่ --</option>
+                      <option value="QUAD">QUAD</option>
+                      <option value="TUBER">TUBER</option>
+                      <option value="WA1">WA1</option>
+                      <option value="WA 2">WA 2</option>
+                      <option value="WA3">WA3</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row-grid">
+                  <!-- Tyre Code Selector -->
+                  <div class="form-group relative">
+                    <label for="input-code"><i class="fa-solid fa-barcode"></i> รหัสยาง (Tyre Code)</label>
+                    <div class="autocomplete-wrapper">
+                      <input type="text" id="input-code" placeholder="พิมพ์ค้นหารหัสยาง..." required>
+                      <div class="autocomplete-dropdown" id="autocomplete-list"></div>
+                    </div>
+                  </div>
+
+                  <!-- Category selection -->
+                  <div class="form-group">
+                    <label for="input-category"><i class="fa-solid fa-hourglass-half"></i> ประเภท / อายุ Workaway</label>
+                    <select id="input-category" required>
+                      <option value="" disabled selected>-- เลือกประเภท --</option>
+                      <option value="new">ของใหม่ที่เกิดขึ้นในวันนั้นๆ</option>
+                      <option value="7day">อยู่มาแล้ว 7 วัน</option>
+                      <option value="7-14day">อยู่มาแล้ว 7-14 วัน</option>
+                      <option value="over14day">มากกว่า 14 วัน</option>
+                      <option value="disposition">รอตรวจสอบ (Disposition)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row-grid">
+                  <!-- Qty In -->
+                  <div class="form-group">
+                    <label for="input-qty-in"><i class="fa-solid fa-arrow-down-long text-success"></i> ปริมาณนำเข้า IN (กิโลกรัม)</label>
+                    <input type="number" step="0.01" min="0" placeholder="0.00" id="input-qty-in" required>
+                  </div>
+
+                  <!-- Qty Out -->
+                  <div class="form-group">
+                    <label for="input-qty-out"><i class="fa-solid fa-arrow-up-long text-danger"></i> ปริมาณเคลียร์ออก OUT (กิโลกรัม)</label>
+                    <input type="number" step="0.01" min="0" placeholder="0.00" id="input-qty-out" required>
+                  </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="form-group">
+                  <label for="input-notes"><i class="fa-solid fa-comment-dots"></i> หมายเหตุ / ข้อมูลเพิ่มเติม</label>
+                  <textarea id="input-notes" rows="2" placeholder="ใส่ข้อมูลเพิ่มเติมสำหรับรายการนี้..."></textarea>
+                </div>
+
+                <!-- Add to Queue / Submit Buttons -->
+                <div class="form-actions-flex">
+                  <button type="button" class="btn btn-secondary" id="btn-add-queue">
+                    <i class="fa-solid fa-plus"></i> เพิ่มเข้าคิวด้านขวา
+                  </button>
+                  <button type="submit" class="btn btn-primary" id="btn-submit-direct">
+                    <i class="fa-solid fa-floppy-disk"></i> บันทึกลงเซิร์ฟเวอร์ทันที
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Right Side: Batch Queue Manager -->
+            <div class="queue-card">
+              <div class="queue-card-header">
+                <div class="queue-header-details">
+                  <h3><i class="fa-solid fa-list-check header-icon-accent"></i> รายการเตรียมบันทึก</h3>
+                  <p class="text-muted">คิวรายการที่กำลังจะบันทึกพร้อมกันเป็นแบบกลุ่ม (Batch)</p>
+                </div>
+                <span class="queue-badge" id="queue-count">0 รายการ</span>
+              </div>
+
+              <div class="queue-items-container" id="queue-items">
+                <div class="empty-queue-placeholder">
+                  <i class="fa-solid fa-cart-flatbed-suitcase"></i>
+                  <p>ยังไม่มีรายการในคิวเตรียมบันทึก</p>
+                  <span class="text-muted">เลือกข้อมูลด้านซ้ายแล้วกดปุ่ม "เพิ่มเข้าคิวด้านขวา"</span>
+                </div>
+              </div>
+
+              <div class="queue-actions" id="queue-actions-panel" style="display: none;">
+                <button class="btn btn-danger-outline" id="btn-clear-queue">
+                  <i class="fa-solid fa-trash-can"></i> ล้างคิวทั้งหมด
+                </button>
+                <button class="btn btn-gradient" id="btn-save-queue">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกรายการทั้งหมด (<span id="queue-save-count">0</span>)
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Bottom: Today's Action Log -->
+          <div class="today-log-container card-panel">
+            <div class="panel-header">
+              <h4><i class="fa-solid fa-history icon-accent"></i> รายการล่าสุดของวันนี้</h4>
+              <button class="btn btn-refresh-sm" id="btn-refresh-today">
+                <i class="fa-solid fa-arrows-rotate"></i> รีเฟรช
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>เวลาบันทึก</th>
+                    <th>พื้นที่ (Area)</th>
+                    <th>สถานที่เก็บ (Storage)</th>
+                    <th>รหัสยาง (Code)</th>
+                    <th>ประเภท / อายุ</th>
+                    <th class="text-right text-success">เข้า (IN)</th>
+                    <th class="text-right text-danger">ออก (OUT)</th>
+                    <th>หมายเหตุ</th>
+                    <th class="text-center">เครื่องมือ</th>
+                  </tr>
+                </thead>
+                <tbody id="today-records-table-body">
+                  <tr>
+                    <td colspan="9" class="text-center text-muted">ไม่พบประวัติการทำรายการในวันนี้</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+
+        <!-- 3. HISTORY AND FILTERS VIEW -->
+        <section id="view-history" class="view-section">
+          
+          <!-- Filters Panel -->
+          <div class="filters-card card-panel">
+            <div class="panel-header">
+              <h4><i class="fa-solid fa-filter icon-accent"></i> คัดกรองและค้นหาข้อมูล</h4>
+              <button class="btn btn-secondary-outline btn-sm" id="btn-clear-filters">
+                <i class="fa-solid fa-filter-circle-xmark"></i> ล้างตัวกรองทั้งหมด
+              </button>
+            </div>
+            
+            <div class="filters-grid">
+              <div class="form-group">
+                <label for="filter-start-date">ตั้งแต่วันที่</label>
+                <input type="date" id="filter-start-date">
+              </div>
+
+              <div class="form-group">
+                <label for="filter-end-date">ถึงวันที่</label>
+                <input type="date" id="filter-end-date">
+              </div>
+
+              <div class="form-group">
+                <label for="filter-area">พื้นที่ผลิต (Area)</label>
+                <select id="filter-area">
+                  <option value="">-- แสดงทั้งหมด --</option>
+                  <option value="QUAD">QUAD (เครื่อง QUAD)</option>
+                  <option value="Tuber">Tuber</option>
+                  <option value="4roll2">4roll2</option>
+                  <option value="4roll1">4roll1</option>
+                  <option value="BTB-WBR">BTB-WBR</option>
+                  <option value="Sapphire">Sapphire</option>
+                  <option value="BTB-Aero">BTB-Aero</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filter-storage">สถานที่จัดเก็บ</label>
+                <select id="filter-storage">
+                  <option value="">-- แสดงทั้งหมด --</option>
+                  <option value="QUAD">QUAD</option>
+                  <option value="TUBER">TUBER</option>
+                  <option value="WA1">WA1</option>
+                  <option value="WA 2">WA 2</option>
+                  <option value="WA3">WA3</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filter-code">รหัสยาง (Tyre Code)</label>
+                <select id="filter-code">
+                  <option value="">-- แสดงทั้งหมด --</option>
+                  <!-- Dynamically populated -->
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filter-category">หมวดหมู่ / อายุยาง</label>
+                <select id="filter-category">
+                  <option value="">-- แสดงทั้งหมด --</option>
+                  <option value="new">ของใหม่วันนี้ (New)</option>
+                  <option value="7day">7 วัน</option>
+                  <option value="7-14day">7-14 วัน</option>
+                  <option value="over14day">มากกว่า 14 วัน</option>
+                  <option value="disposition">รอตรวจสอบ (Disposition)</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="filter-actions-flex">
+              <button class="btn btn-primary" id="btn-apply-filters">
+                <i class="fa-solid fa-magnifying-glass"></i> ค้นหาตามเงื่อนไข
+              </button>
+              <button class="btn btn-success" id="btn-export-csv">
+                <i class="fa-solid fa-file-csv"></i> ส่งออกเป็น Excel / CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- History Table Results -->
+          <div class="history-results card-panel">
+            <div class="panel-header">
+              <div class="panel-title-group">
+                <h4><i class="fa-solid fa-database icon-accent"></i> ผลลัพธ์ข้อมูลประวัติบันทึกการผลิต</h4>
+                <span class="results-count" id="results-count-badge">พบ 0 รายการ</span>
+              </div>
+              <div class="pagination-controls" id="table-pagination">
+                <!-- Dynamically generated pagination -->
+              </div>
+            </div>
+            
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>วันที่บันทึก</th>
+                    <th>พื้นที่การผลิต (Area)</th>
+                    <th>สถานที่จัดเก็บ (Storage)</th>
+                    <th>รหัสยาง (Code)</th>
+                    <th>ประเภท / อายุยาง</th>
+                    <th class="text-right text-success">เข้า (IN)</th>
+                    <th class="text-right text-danger">ออก (OUT)</th>
+                    <th>หมายเหตุ</th>
+                    <th class="text-center">เครื่องมือ</th>
+                  </tr>
+                </thead>
+                <tbody id="history-table-body">
+                  <tr>
+                    <td colspan="9" class="text-center text-muted">โปรดกดปุ่มค้นหาข้อมูลด้านบน</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+
+        <!-- 4. TYRE CODES INFO VIEW -->
+        <section id="view-codes" class="view-section">
+          
+          <div class="codes-split-container">
+            
+            <!-- Left Panel: Preset Codes List -->
+            <div class="codes-card card-panel">
+              <div class="panel-header">
+                <h4><i class="fa-solid fa-list-ol icon-accent"></i> บัญชีรายชื่อรหัสยางเริ่มต้น (Preset Tyre Codes)</h4>
+                <span class="codes-total-badge" id="codes-count-badge">46 รหัส</span>
+              </div>
+              <div class="search-code-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="search-code-input" placeholder="พิมพ์ค้นหารหัสยางในระบบย่อย...">
+              </div>
+              <div class="codes-grid-list" id="preset-codes-grid">
+                <!-- Auto-populated codes list -->
+              </div>
+            </div>
+
+            <!-- Right Panel: About System -->
+            <div class="about-card card-panel glow-card-info">
+              <div class="panel-header">
+                <h4><i class="fa-solid fa-server icon-accent"></i> เกี่ยวกับระบบ & โครงสร้างข้อมูล</h4>
+              </div>
+              <div class="about-body">
+                <h5>ระบบบริหารจัดการ Workaway ของส่วนผลิตยาง BTA</h5>
+                <p>ระบบนี้ถูกออกแบบมาเพื่อใช้ควบคุมและตรวจสอบสถิติสะสมของส่วนประกอบยางรถยนต์ (Car Tyres) และยางเครื่องบิน (Airplane Tyres) ซึ่งเกิดความตกค้างหรือรอตรวจสอบการเคลียร์คุณภาพให้กลับคืนสู่ระบบการผลิต</p>
+                
+                <hr class="card-divider">
+
+                <h5>📊 กฎการวิเคราะห์การสะสม (Aging Rules)</h5>
+                <ul class="about-rules-list">
+                  <li>
+                    <span class="badge badge-new">New</span>
+                    <div class="rule-desc">
+                      <strong>ของใหม่เกิดขึ้นในวันนั้นๆ</strong>
+                      <span>เศษยางหรือ component ที่เกิดขึ้นใหม่ในการเดินเครื่องจักรของวันปัจจุบัน</span>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="badge badge-7d">7 Days</span>
+                    <div class="rule-desc">
+                      <strong>ค้างสะสม 7 วัน</strong>
+                      <span>วัสดุ Workaway ที่เก็บมาเป็นเวลา 7 วันโดยยังไม่ถูกเคลียร์ออก</span>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="badge badge-7-14d">7-14 Days</span>
+                    <div class="rule-desc">
+                      <strong>ค้างสะสม 7 - 14 วัน</strong>
+                      <span>วัสดุเริ่มตกค้างในระดับปานกลาง จำเป็นต้องตรวจเช็คแผนการผลิต</span>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="badge badge-over14d">> 14 Days</span>
+                    <div class="rule-desc">
+                      <strong>ค้างสะสมมากกว่า 14 วัน (ความเสี่ยงสูง)</strong>
+                      <span>วัสดุตกค้างระดับวิกฤต ต้องรีบดำเนินการนำกลับมาแปรรูปหรือทำลาย</span>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="badge badge-disp">Disposition</span>
+                    <div class="rule-desc">
+                      <strong>รอตรวจสอบคุณภาพ (Disposition)</strong>
+                      <span>รอกรรมการตรวจสอบ วิเคราะห์คุณลักษณะเพื่อระบุปลายทาง</span>
+                    </div>
+                  </li>
+                </ul>
+
+                <hr class="card-divider">
+                
+                <h5>💾 แหล่งข้อมูลสำรองและพิกัดฐานข้อมูลหลัก</h5>
+                <div class="db-location-box">
+                  <div class="box-icon"><i class="fa-solid fa-database"></i></div>
+                  <div class="box-text">
+                    <strong>T: Drive (Shared folder):</strong>
+                    <span class="selectable-path">T:\10.30 A.M. Production Meeting\AI WORKAWAY BTA\data\workaway.json</span>
+                    <span class="db-note">* ข้อมูลอัปเดตแบบเรียลไทม์ ผู้ใช้คนอื่นบนเครือข่ายสามารถเข้าถึงตัวไฟล์นี้ได้ทันที</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- POPUP MODAL: EDIT RECORD -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-pen-to-square"></i> แก้ไขรายการบันทึก</h3>
+        <button class="modal-close-btn" id="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form id="edit-form">
+        <input type="hidden" id="edit-id">
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="edit-date">วันที่รายการ</label>
+            <input type="date" id="edit-date" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-area">พื้นที่ (Area)</label>
+            <select id="edit-area" required>
+              <option value="QUAD">QUAD (เครื่อง QUAD)</option>
+              <option value="Tuber">Tuber</option>
+              <option value="4roll2">4roll2</option>
+              <option value="4roll1">4roll1</option>
+              <option value="BTB-WBR">BTB-WBR</option>
+              <option value="Sapphire">Sapphire</option>
+              <option value="BTB-Aero">BTB-Aero</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-storage">สถานที่จัดเก็บ (Storage)</label>
+            <select id="edit-storage" required>
+              <option value="QUAD">QUAD</option>
+              <option value="TUBER">TUBER</option>
+              <option value="WA1">WA1</option>
+              <option value="WA 2">WA 2</option>
+              <option value="WA3">WA3</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="edit-code">รหัสยาง (Tyre Code)</label>
+            <input type="text" id="edit-code" disabled class="disabled-input">
+          </div>
+          <div class="form-group">
+            <label for="edit-category">ประเภท / อายุยาง</label>
+            <select id="edit-category" required>
+              <option value="new">ของใหม่ที่เกิดขึ้นในวันนั้นๆ</option>
+              <option value="7day">อยู่มาแล้ว 7 วัน</option>
+              <option value="7-14day">อยู่มาแล้ว 7-14 วัน</option>
+              <option value="over14day">มากกว่า 14 วัน</option>
+              <option value="disposition">รอตรวจสอบ (Disposition)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-grid">
+          <div class="form-group">
+            <label for="edit-qty-in">นำเข้า IN (กิโลกรัม)</label>
+            <input type="number" step="0.01" min="0" id="edit-qty-in" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-qty-out">เคลียร์ออก OUT (กิโลกรัม)</label>
+            <input type="number" step="0.01" min="0" id="edit-qty-out" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-notes">หมายเหตุ</label>
+          <textarea id="edit-notes" rows="2"></textarea>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary-outline" id="btn-cancel-edit">ยกเลิก</button>
+          <button type="submit" class="btn btn-primary">บันทึกความเปลี่ยนแปลง</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification System -->
+  <div id="toast-container"></div>
+
+  <!-- Application Logic Scripts (Offline Enabled) -->
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

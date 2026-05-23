@@ -1,0 +1,7 @@
+node_modules/
+data/
+*.log
+test_write.txt
+test.js
+test.html
+test.css
