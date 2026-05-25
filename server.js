@@ -380,7 +380,7 @@ app.get('/api/qrcodes/:code', (req, res) => {
 
 // 8. Register IN scan (Mobile only)
 app.post('/api/qrcodes/scan-in', (req, res) => {
-  const { code, date, area, storage_location, tyre_code, qty_in, notes } = req.body;
+  const { code, date, area, storage_location, tyre_code, category, qty_in, notes } = req.body;
 
   // Validations
   if (!code || !date || !area || !storage_location || !tyre_code || !qty_in) {
@@ -408,6 +408,11 @@ app.post('/api/qrcodes/scan-in', (req, res) => {
     return res.status(400).json({ error: 'Invalid tyre code.' });
   }
 
+  const categoryVal = category || 'new';
+  if (categoryVal !== 'new' && categoryVal !== 'disposition') {
+    return res.status(400).json({ error: 'Invalid category. Only new and disposition are supported.' });
+  }
+
   const weight = parseFloat(qty_in) || 0;
   if (weight <= 0) {
     return res.status(400).json({ error: 'Weight must be greater than 0 kg.' });
@@ -416,14 +421,14 @@ app.post('/api/qrcodes/scan-in', (req, res) => {
   const records = readDatabase();
   const newRecordId = '_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
   
-  // Register a new transaction (only category: "new" is allowed on mobile QR scan)
+  // Register a new transaction (supports category: "new" or "disposition" from mobile scan)
   const newRecord = {
     id: newRecordId,
     date,
     area,
     storage_location,
     code: tyre_code,
-    category: 'new', // Always "new" for QR code generation
+    category: categoryVal,
     qty_in: weight,
     qty_out: 0,
     qr_code: code,

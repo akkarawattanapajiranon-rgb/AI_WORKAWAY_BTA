@@ -505,11 +505,22 @@
           </select>
         </div>
 
-        <!-- Tyre Code Autocomplete -->
-        <div class="form-group relative">
+        <!-- Category Selector -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-hourglass-half"></i> ประเภทวัสดุ (Category)</label>
+          <select id="in-category" required>
+            <option value="new" selected>ของใหม่เกิดขึ้นในวันนั้นๆ (New)</option>
+            <option value="disposition">รอตรวจสอบคุณภาพ (Disposition)</option>
+          </select>
+        </div>
+
+        <!-- Tyre Code Select Dropdown -->
+        <div class="form-group">
           <label><i class="fa-solid fa-barcode"></i> รหัสยาง (Tyre Code)</label>
-          <input type="text" id="in-code" placeholder="พิมพ์เพื่อค้นหา..." required>
-          <div class="autocomplete-list" id="in-autocomplete-list"></div>
+          <select id="in-code" required>
+            <option value="" disabled selected>-- เลือกรหัสยาง --</option>
+            <!-- Dynamically populated -->
+          </select>
         </div>
 
         <!-- Weight -->
@@ -650,10 +661,10 @@
         inDate: document.getElementById('in-date'),
         inArea: document.getElementById('in-area'),
         inStorage: document.getElementById('in-storage'),
+        inCategory: document.getElementById('in-category'),
         inCode: document.getElementById('in-code'),
         inWeight: document.getElementById('in-weight'),
         inNotes: document.getElementById('in-notes'),
-        autocompleteList: document.getElementById('in-autocomplete-list'),
         btnIn: document.getElementById('btn-submit-in'),
         
         lblCode: document.getElementById('lbl-tyre-code'),
@@ -709,7 +720,7 @@
           if (metaRes.ok) {
             const meta = await metaRes.json();
             tyreCodes = meta.tyre_codes || [];
-            setupAutocomplete();
+            populateTyreCodesDropdown();
           }
 
           // 2. Fetch specific QR status
@@ -756,45 +767,15 @@
         }
       }
 
-      // setup autocomplete list
-      function setupAutocomplete() {
-        const input = forms.inCode;
-        const list = forms.autocompleteList;
-
-        input.addEventListener('input', () => {
-          const val = input.value.trim().toUpperCase();
-          list.innerHTML = '';
-
-          if (!val) {
-            list.style.display = 'none';
-            return;
-          }
-
-          const matches = tyreCodes.filter(c => c.includes(val));
-          if (matches.length === 0) {
-            list.style.display = 'none';
-            return;
-          }
-
-          matches.forEach(match => {
-            const div = document.createElement('div');
-            div.className = 'autocomplete-item';
-            div.textContent = match;
-            div.addEventListener('click', () => {
-              input.value = match;
-              list.style.display = 'none';
-            });
-            list.appendChild(div);
-          });
-
-          list.style.display = 'block';
-        });
-
-        // Close on blur
-        document.addEventListener('click', (e) => {
-          if (e.target !== input && e.target !== list) {
-            list.style.display = 'none';
-          }
+      // Populate Tyre Codes Dropdown Select Options
+      function populateTyreCodesDropdown() {
+        const select = forms.inCode;
+        select.innerHTML = '<option value="" disabled selected>-- เลือกรหัสยาง --</option>';
+        tyreCodes.forEach(code => {
+          const opt = document.createElement('option');
+          opt.value = code;
+          opt.textContent = code;
+          select.appendChild(opt);
         });
       }
 
@@ -809,14 +790,15 @@
           date: forms.inDate.value,
           area: forms.inArea.value,
           storage_location: forms.inStorage.value,
-          tyre_code: forms.inCode.value.trim().toUpperCase(),
+          tyre_code: forms.inCode.value,
+          category: forms.inCategory.value,
           qty_in: parseFloat(forms.inWeight.value) || 0,
           notes: forms.inNotes.value.trim()
         };
 
         // Extra check
         if (!tyreCodes.includes(data.tyre_code)) {
-          alert('รหัสยางต้องถูกต้องตามรายการมาตรฐาน 46 รหัสเท่านั้น');
+          alert('กรุณาเลือกรหัสยางมาตรฐานจากรายการ');
           return;
         }
 
