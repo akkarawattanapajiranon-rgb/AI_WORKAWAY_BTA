@@ -1,6 +1,6 @@
 /**
  * Workaway Recording & Dashboard System - Core Frontend App Logic
- * Vanilla JavaScript managing autocomplete, batch queue, modals, and API calls
+ * Vanilla JavaScript managing autocomplete, QR Inventory, modals, printing and API calls
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -11,11 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
   let storageLocations = [];
   let categories = [];
   
-  let batchQueue = [];
   let chartManager = null;
   let currentActiveTab = 'dashboard';
   let historyRecords = [];
   
+  // QR Inventory States
+  let qrCodeList = [];
+  let currentFilterStatus = 'all';
+
   // Pagination State
   let currentPage = 1;
   const recordsPerPage = 10;
@@ -33,33 +36,41 @@ document.addEventListener('DOMContentLoaded', () => {
     currentTime: document.getElementById('current-time-display'),
     dbPathDisplay: document.getElementById('db-path-display'),
     
-    // Form Inputs
-    form: document.getElementById('workaway-form'),
-    inputDate: document.getElementById('input-date'),
-    inputArea: document.getElementById('input-area'),
-    inputStorage: document.getElementById('input-storage'),
-    inputCode: document.getElementById('input-code'),
-    autocompleteList: document.getElementById('autocomplete-list'),
-    inputCategory: document.getElementById('input-category'),
-    inputQtyIn: document.getElementById('input-qty-in'),
-    inputQtyOut: document.getElementById('input-qty-out'),
-    inputNotes: document.getElementById('input-notes'),
-    
-    // Form Buttons
-    btnAddQueue: document.getElementById('btn-add-queue'),
-    btnSubmitDirect: document.getElementById('btn-submit-direct'),
-    
-    // Queue Elements
-    queueContainer: document.getElementById('queue-items'),
-    queueCountBadge: document.getElementById('queue-count'),
-    queueSaveCount: document.getElementById('queue-save-count'),
-    queueActionsPanel: document.getElementById('queue-actions-panel'),
-    btnClearQueue: document.getElementById('btn-clear-queue'),
-    btnSaveQueue: document.getElementById('btn-save-queue'),
-    
-    // Today Log Elements
-    todayTableBody: document.getElementById('today-records-table-body'),
-    btnRefreshToday: document.getElementById('btn-refresh-today'),
+    // QR Inventory Elements
+    qrInventoryGrid: document.getElementById('qr-inventory-grid'),
+    qrSearchInput: document.getElementById('qr-search-input'),
+    btnFilterAll: document.getElementById('btn-filter-all'),
+    btnFilterAvailable: document.getElementById('btn-filter-available'),
+    btnFilterInuse: document.getElementById('btn-filter-inuse'),
+    btnOpenPrintModal: document.getElementById('btn-open-print-modal'),
+    btnRefreshInventory: document.getElementById('btn-refresh-inventory'),
+    countAvailableQr: document.getElementById('count-available-qr'),
+    countInuseQr: document.getElementById('count-inuse-qr'),
+    countTotalQr: document.getElementById('count-total-qr'),
+
+    // QR Details Modal
+    qrDetailModal: document.getElementById('qr-detail-modal'),
+    qrModalImage: document.getElementById('qr-modal-image'),
+    qrModalCodeName: document.getElementById('qr-modal-code-name'),
+    qrModalStatusBadge: document.getElementById('qr-modal-status-badge'),
+    qrModalStateAvailable: document.getElementById('qr-modal-state-available'),
+    qrModalStateInuse: document.getElementById('qr-modal-state-inuse'),
+    qrModalLblTyreCode: document.getElementById('qr-modal-lbl-tyre-code'),
+    qrModalLblArea: document.getElementById('qr-modal-lbl-area'),
+    qrModalLblStorage: document.getElementById('qr-modal-lbl-storage'),
+    qrModalLblWeight: document.getElementById('qr-modal-lbl-weight'),
+    qrModalLblDate: document.getElementById('qr-modal-lbl-date'),
+    qrModalLblNotes: document.getElementById('qr-modal-lbl-notes'),
+    qrModalOutForm: document.getElementById('qr-modal-out-form'),
+    qrModalAdminPass: document.getElementById('qr-modal-admin-pass'),
+    btnCloseQrModal: document.getElementById('btn-close-qr-modal'),
+
+    // QR Print Modal
+    qrPrintModal: document.getElementById('qr-print-modal'),
+    btnPrintStartNum: document.getElementById('print-start-num'),
+    btnPrintEndNum: document.getElementById('print-end-num'),
+    btnGeneratePrintSheet: document.getElementById('btn-generate-print-sheet'),
+    btnClosePrintModal: document.getElementById('btn-close-print-modal'),
     
     // Filters & History Elements
     filterStartDate: document.getElementById('filter-start-date'),
@@ -80,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     presetCodesGrid: document.getElementById('preset-codes-grid'),
     codesCountBadge: document.getElementById('codes-count-badge'),
     
-    // Edit Modal Elements
+    // Edit Modal Elements (For history updates)
     editModal: document.getElementById('edit-modal'),
     editForm: document.getElementById('edit-form'),
     editId: document.getElementById('edit-id'),
@@ -104,9 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     kpiTodayNewInOut: document.getElementById('kpi-today-new-in-out')
   };
 
-  // Set today's date in date inputs
+  // Set default dates in date inputs
   const todayStr = new Date().toISOString().split('T')[0];
-  elements.inputDate.value = todayStr;
   elements.filterStartDate.value = todayStr; // Default filters to today to keep it clean
   elements.filterEndDate.value = todayStr;
 
@@ -190,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch(`${apiBaseUrl}/api/metadata`);
       if (!response.ok) throw new Error('Failed to fetch system metadata');
       
-      const data = await response.ok ? await response.json() : null;
+      const data = await response.json();
       if (!data) return;
 
       tyreCodes = data.tyre_codes || [];
@@ -213,11 +223,25 @@ document.addEventListener('DOMContentLoaded', () => {
         elements.filterCode.appendChild(option);
       });
 
+      // Populate edit modal dropdowns
+      elements.editArea.innerHTML = '';
+      areas.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = a;
+        opt.textContent = a;
+        elements.editArea.appendChild(opt);
+      });
+
+      elements.editStorage.innerHTML = '';
+      storageLocations.forEach(sl => {
+        const opt = document.createElement('option');
+        opt.value = sl;
+        opt.textContent = sl;
+        elements.editStorage.appendChild(opt);
+      });
+
       // Render preset codes grids
       renderPresetCodesGrid();
-
-      // Autocomplete events binding
-      setupAutocomplete();
       
       showToast('เชื่อมต่อระบบหลังบ้านสำเร็จ', 'success');
     } catch (error) {
@@ -250,11 +274,12 @@ document.addEventListener('DOMContentLoaded', () => {
         <span class="code-usage">รหัสเริ่มแรก</span>
       `;
       
-      // Clicking on chip fills it in recording form and opens record tab!
+      // Clicking on chip searches in QR inventory!
       chip.addEventListener('click', () => {
-        elements.inputCode.value = code;
-        switchTab('record');
-        showToast(`เลือกรหัสยาง ${code} ลงในฟอร์มสำเร็จ`, 'info');
+        elements.qrSearchInput.value = code;
+        switchTab('qrinventory');
+        renderQRInventoryGrid();
+        showToast(`ฟิลเตอร์ค้นหาคลังด้วยรหัสยาง ${code} สำเร็จ`, 'info');
       });
 
       elements.presetCodesGrid.appendChild(chip);
@@ -265,65 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
   elements.searchCodeInput.addEventListener('input', (e) => {
     renderPresetCodesGrid(e.target.value);
   });
-
-  // ==========================================================================
-  // TYRE CODE AUTOCOMPLETE (SEARCH DROP-DOWN)
-  // ==========================================================================
-  function setupAutocomplete() {
-    const input = elements.inputCode;
-    const dropdown = elements.autocompleteList;
-
-    input.addEventListener('input', () => {
-      const val = input.value.trim().toUpperCase();
-      dropdown.innerHTML = '';
-
-      if (!val) {
-        dropdown.style.display = 'none';
-        return;
-      }
-
-      const matches = tyreCodes.filter(c => c.includes(val));
-      if (matches.length === 0) {
-        dropdown.style.display = 'none';
-        return;
-      }
-
-      matches.forEach(match => {
-        const item = document.createElement('div');
-        item.className = 'autocomplete-item';
-        // Highlight matched characters
-        const regex = new RegExp(`(${val})`, 'gi');
-        item.innerHTML = match.replace(regex, '<strong>$1</strong>');
-        
-        item.addEventListener('click', () => {
-          input.value = match;
-          dropdown.style.display = 'none';
-        });
-
-        dropdown.appendChild(item);
-      });
-
-      dropdown.style.display = 'block';
-    });
-
-    // Close autocomplete when clicking outside
-    document.addEventListener('click', (e) => {
-      if (e.target !== input && e.target !== dropdown) {
-        dropdown.style.display = 'none';
-      }
-    });
-
-    // Handle keys on autocomplete input (enter selects first match)
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const items = dropdown.querySelectorAll('.autocomplete-item');
-        if (items.length > 0) {
-          e.preventDefault();
-          items[0].click();
-        }
-      }
-    });
-  }
 
   // ==========================================================================
   // NAVIGATION SPA TABS SWITCHER
@@ -352,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update Top bar header headings
     const tabHeadings = {
       dashboard: { title: 'แดชบอร์ดสรุปผล', desc: 'วิเคราะห์ข้อมูลสถิติ Workaway รวม ยางรถยนต์ & ยางเครื่องบิน' },
-      record: { title: 'บันทึกข้อมูลรายวัน', desc: 'ป้อนข้อมูลนำเข้า/ส่งออกประจำวันอย่างรวดเร็ว (คีย์มือแบบกลุ่ม)' },
+      qrinventory: { title: 'คลังจัดการและสั่งพิมพ์ QR Code', desc: 'ควบคุมสถานะ QR Code 500 รหัสหมุนเวียน และสั่งพิมพ์ฉลากหน้างาน' },
       history: { title: 'ประวัติและตัวกรองข้อมูล', desc: 'ค้นหา ประวัติ แก้ไขรายละเอียด หรือดาวน์โหลดส่งออกข้อมูลเป็น CSV/Excel' },
       codes: { title: 'รหัสยางและข้อมูลระบบ', desc: 'บัญชีรายชื่อรหัสยางมาตรฐานทั้ง 46 รายการและข้อกำหนดการทำงาน' }
     };
@@ -365,8 +331,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Refresh charts if dashboard tab is active
     if (targetTab === 'dashboard') {
       fetchDashboardSummary();
-    } else if (targetTab === 'record') {
-      fetchTodayRecords();
+    } else if (targetTab === 'qrinventory') {
+      fetchQRInventory();
     } else if (targetTab === 'history') {
       fetchHistoryRecords();
     }
@@ -450,288 +416,346 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // BATCH QUEUE MANAGEMENT
+  // QR INVENTORY CONTROLLERS
   // ==========================================================================
-  
-  // Validates a single entry before putting into queue or database
-  function validateFormEntry() {
-    const code = elements.inputCode.value.trim().toUpperCase();
-    const area = elements.inputArea.value;
-    const storage = elements.inputStorage.value;
-    const category = elements.inputCategory.value;
-    const qtyIn = parseFloat(elements.inputQtyIn.value) || 0;
-    const qtyOut = parseFloat(elements.inputQtyOut.value) || 0;
-
-    if (!elements.inputDate.value) {
-      showToast('กรุณาระบุวันที่จัดทำรายการ', 'warning');
-      return false;
-    }
-    if (!area) {
-      showToast('กรุณาเลือกพื้นที่การผลิต (Area)', 'warning');
-      return false;
-    }
-    if (!storage) {
-      showToast('กรุณาเลือกสถานที่จัดเก็บ (Storage)', 'warning');
-      return false;
-    }
-    if (!code || !tyreCodes.includes(code)) {
-      showToast('รหัสยางต้องถูกต้องตามรายการรหัสยางมาตรฐาน 46 รหัสเท่านั้น', 'warning');
-      return false;
-    }
-    if (!category) {
-      showToast('กรุณาระบุสถานะหรือประเภทอายุยาง', 'warning');
-      return false;
-    }
-    if (qtyIn < 0 || qtyOut < 0) {
-      showToast('จำนวนน้ำหนักห้ามมีค่าติดลบ', 'warning');
-      return false;
-    }
-    if (qtyIn === 0 && qtyOut === 0) {
-      showToast('กรุณาระบุน้ำหนักขาเข้า (IN) หรือขาออก (OUT) อย่างน้อย 1 ช่อง', 'warning');
-      return false;
-    }
-
-    return {
-      date: elements.inputDate.value,
-      area,
-      storage_location: storage,
-      code,
-      category,
-      qty_in: qtyIn,
-      qty_out: qtyOut,
-      notes: elements.inputNotes.value.trim()
-    };
-  }
-
-  // Add Item to Queue
-  elements.btnAddQueue.addEventListener('click', () => {
-    const record = validateFormEntry();
-    if (!record) return; // failed validation
-
-    // Add unique queue ID
-    record.queueId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-    batchQueue.push(record);
-    
-    // Clear inputs except Date, Area and Storage to speed up typing!
-    elements.inputCode.value = '';
-    elements.inputCategory.value = '';
-    elements.inputQtyIn.value = '';
-    elements.inputQtyOut.value = '';
-    elements.inputNotes.value = '';
-    
-    renderQueueList();
-    showToast('เพิ่มรายการเข้าคิวสำเร็จ', 'info');
-  });
-
-  // Render Visual Queue Items
-  function renderQueueList() {
-    const container = elements.queueContainer;
-    container.innerHTML = '';
-
-    elements.queueCountBadge.textContent = `${batchQueue.length} รายการ`;
-    elements.queueSaveCount.textContent = batchQueue.length;
-
-    if (batchQueue.length === 0) {
-      elements.queueActionsPanel.style.display = 'none';
-      container.innerHTML = `
-        <div class="empty-queue-placeholder">
-          <i class="fa-solid fa-cart-flatbed-suitcase"></i>
-          <p>ยังไม่มีรายการในคิวเตรียมบันทึก</p>
-          <span class="text-muted">เลือกข้อมูลด้านซ้ายแล้วกดปุ่ม "เพิ่มเข้าคิวด้านขวา"</span>
-        </div>
-      `;
-      return;
-    }
-
-    elements.queueActionsPanel.style.display = 'flex';
-
-    batchQueue.forEach((item, index) => {
-      const qItem = document.createElement('div');
-      qItem.className = 'queue-item';
-      
-      let badgeClass = 'badge-new';
-      let categoryThai = 'ของใหม่';
-      if (item.category === '7day') { badgeClass = 'badge-7d'; categoryThai = '7 วัน'; }
-      if (item.category === '7-14day') { badgeClass = 'badge-7-14d'; categoryThai = '7-14 วัน'; }
-      if (item.category === 'over14day') { badgeClass = 'badge-over14d'; categoryThai = '>14 วัน'; }
-      if (item.category === 'disposition') { badgeClass = 'badge-disp'; categoryThai = 'รอตรวจ'; }
-
-      qItem.innerHTML = `
-        <div class="queue-item-details">
-          <div class="queue-item-code-row">
-            <span class="queue-item-code">${item.code}</span>
-            <span class="queue-item-badge ${badgeClass}">${categoryThai}</span>
-          </div>
-          <span class="queue-item-info">พื้นที่: ${item.area} | จัดเก็บ: ${item.storage_location}</span>
-        </div>
-        <div class="queue-item-weight">
-          <span class="weight-row">
-            ${item.qty_in > 0 ? `<span class="text-success">+${item.qty_in} IN</span>` : ''}
-            ${item.qty_out > 0 ? `<span class="text-danger">-${item.qty_out} OUT</span>` : ''}
-          </span>
-          <button class="queue-item-delete" title="ลบรายการนี้"><i class="fa-solid fa-trash"></i></button>
-        </div>
-      `;
-
-      // Remove from queue event
-      qItem.querySelector('.queue-item-delete').addEventListener('click', () => {
-        batchQueue.splice(index, 1);
-        renderQueueList();
-        showToast('ลบรายการออกจากคิวแล้ว', 'info');
-      });
-
-      container.appendChild(qItem);
-    });
-  }
-
-  // Clear Queue
-  elements.btnClearQueue.addEventListener('click', () => {
-    batchQueue = [];
-    renderQueueList();
-    showToast('ล้างคิวรายการทั้งหมดเรียบร้อยแล้ว', 'info');
-  });
-
-  // Save Direct Single Entry (Immediate Save button)
-  elements.form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const record = validateFormEntry();
-    if (!record) return;
-
+  async function fetchQRInventory() {
     try {
-      elements.btnSubmitDirect.disabled = true;
-      elements.btnSubmitDirect.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
-
-      const response = await fetch(`${apiBaseUrl}/api/records`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(record)
-      });
-
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to save record');
-      }
-
-      showToast('บันทึกรายการลงเซิร์ฟเวอร์เรียบร้อย!', 'success');
+      elements.qrInventoryGrid.innerHTML = `
+        <div class="grid-loader">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <p>กำลังรีเฟรชข้อมูลคลัง QR Code...</p>
+        </div>
+      `;
       
-      // Reset form fields
-      elements.inputCode.value = '';
-      elements.inputCategory.value = '';
-      elements.inputQtyIn.value = '';
-      elements.inputQtyOut.value = '';
-      elements.inputNotes.value = '';
-
-      fetchTodayRecords();
+      const response = await fetch(`${apiBaseUrl}/api/qrcodes`);
+      if (!response.ok) throw new Error('Failed to fetch QR codes');
+      
+      qrCodeList = await response.json();
+      renderQRInventoryGrid();
+      updateQRLegendCounts();
     } catch (error) {
       console.error(error);
-      showToast(error.message, 'danger');
-    } finally {
-      elements.btnSubmitDirect.disabled = false;
-      elements.btnSubmitDirect.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> บันทึกลงเซิร์ฟเวอร์ทันที';
-    }
-  });
-
-  // Save Batch Queue to Server
-  elements.btnSaveQueue.addEventListener('click', async () => {
-    if (batchQueue.length === 0) return;
-    
-    try {
-      elements.btnSaveQueue.disabled = true;
-      elements.btnSaveQueue.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกทั้งหมด...';
-
-      let successCount = 0;
-      // Post all items concurrently
-      const promises = batchQueue.map(async (record) => {
-        // Remove helper ID before posting
-        const { queueId, ...cleanRecord } = record;
-        const response = await fetch(`${apiBaseUrl}/api/records`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(cleanRecord)
-        });
-        if (response.ok) successCount++;
-      });
-
-      await Promise.all(promises);
-      
-      showToast(`บันทึกแบบกลุ่มสำเร็จทั้งหมด ${successCount} จาก ${batchQueue.length} รายการ`, 'success');
-      batchQueue = [];
-      renderQueueList();
-      fetchTodayRecords();
-    } catch (e) {
-      console.error(e);
-      showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูลแบบกลุ่ม', 'danger');
-    } finally {
-      elements.btnSaveQueue.disabled = false;
-      elements.btnSaveQueue.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> บันทึกรายการทั้งหมด';
-    }
-  });
-
-  // ==========================================================================
-  // TODAY ACTIONS & LOGS LIST
-  // ==========================================================================
-  async function fetchTodayRecords() {
-    try {
-      elements.todayTableBody.innerHTML = '<tr><td colspan="9" class="text-center"><i class="fa-solid fa-spinner fa-spin"></i> กำลังโหลดข้อมูล...</td></tr>';
-      
-      const response = await fetch(`${apiBaseUrl}/api/records?start_date=${todayStr}&end_date=${todayStr}`);
-      if (!response.ok) throw new Error('Failed to load today records');
-      
-      const data = await response.json();
-      renderTodayTable(data);
-    } catch (e) {
-      console.error(e);
-      elements.todayTableBody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">เกิดข้อผิดพลาดในการดึงข้อมูลวันนี้</td></tr>';
+      elements.qrInventoryGrid.innerHTML = `
+        <div class="grid-loader text-danger">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <p>ไม่สามารถดึงข้อมูลคลัง QR Code ได้</p>
+        </div>
+      `;
+      showToast('โหลดข้อมูลคลัง QR Code ล้มเหลว', 'danger');
     }
   }
 
-  function renderTodayTable(records) {
-    const tbody = elements.todayTableBody;
-    tbody.innerHTML = '';
-
-    if (records.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted">ไม่พบประวัติการทำรายการในวันนี้ (กรอกฟอร์มเพื่อบันทึกรายการแรก)</td></tr>';
+  function renderQRInventoryGrid() {
+    elements.qrInventoryGrid.innerHTML = '';
+    
+    const searchQuery = elements.qrSearchInput.value.trim().toLowerCase();
+    
+    let filtered = qrCodeList;
+    
+    // Apply Status Filter
+    if (currentFilterStatus !== 'all') {
+      filtered = filtered.filter(q => q.status === currentFilterStatus);
+    }
+    
+    // Apply Search Query (matches QR code name or current tyre code)
+    if (searchQuery) {
+      filtered = filtered.filter(q => {
+        const matchesName = q.code.toLowerCase().includes(searchQuery);
+        const matchesTyreCode = q.details && q.details.code.toLowerCase().includes(searchQuery);
+        return matchesName || matchesTyreCode;
+      });
+    }
+    
+    if (filtered.length === 0) {
+      elements.qrInventoryGrid.innerHTML = `
+        <div class="grid-loader text-muted">
+          <i class="fa-solid fa-qrcode" style="opacity:0.3;"></i>
+          <p>ไม่พบรายการ QR Code ตามเงื่อนไข</p>
+        </div>
+      `;
       return;
     }
-
-    records.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.className = 'glowing-row';
+    
+    filtered.forEach(q => {
+      const card = document.createElement('div');
+      card.className = `qr-chip-card ${q.status}`;
       
-      const formattedTime = new Date(r.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+      let detailHtml = '';
+      let statusLabel = 'ว่างพร้อมใช้';
+      if (q.status === 'in_use') {
+        statusLabel = 'ใช้งานอยู่';
+        if (q.details) {
+          detailHtml = `<span class="qr-chip-detail" title="${q.details.code}">${q.details.code} (${q.details.qty_in.toFixed(1)} กก.)</span>`;
+        }
+      }
       
-      let categoryThai = 'ของใหม่';
-      if (r.category === '7day') categoryThai = 'อยู่มาแล้ว 7 วัน';
-      if (r.category === '7-14day') categoryThai = 'อยู่มาแล้ว 7-14 วัน';
-      if (r.category === 'over14day') categoryThai = 'มากกว่า 14 วัน';
-      if (r.category === 'disposition') categoryThai = 'รอตรวจสอบ (Disposition)';
-
-      tr.innerHTML = `
-        <td><strong>${formattedTime} น.</strong></td>
-        <td><span class="results-count">${r.area}</span></td>
-        <td><i class="fa-solid fa-warehouse text-muted"></i> ${r.storage_location}</td>
-        <td><strong class="text-success">${r.code}</strong></td>
-        <td>${categoryThai}</td>
-        <td class="text-right text-success">${r.qty_in > 0 ? `+${r.qty_in.toFixed(1)}` : '0'}</td>
-        <td class="text-right text-danger">${r.qty_out > 0 ? `-${r.qty_out.toFixed(1)}` : '0'}</td>
-        <td><span class="text-muted" style="font-size: 11px;">${r.notes || '-'}</span></td>
-        <td class="text-center">
-          <div class="table-actions">
-            <button class="btn-table-icon edit-btn" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
-            <button class="btn-table-icon delete-btn" title="ลบ"><i class="fa-solid fa-trash"></i></button>
-          </div>
-        </td>
+      card.innerHTML = `
+        <i class="fa-solid fa-qrcode qr-chip-icon"></i>
+        <span class="qr-chip-name">${q.code}</span>
+        <span class="qr-chip-status">${statusLabel}</span>
+        ${detailHtml}
       `;
-
-      // Bind Edit / Delete inside row
-      tr.querySelector('.edit-btn').addEventListener('click', () => openEditModal(r));
-      tr.querySelector('.delete-btn').addEventListener('click', () => deleteRecord(r.id));
-
-      tbody.appendChild(tr);
+      
+      card.addEventListener('click', () => openQRDetailModal(q));
+      elements.qrInventoryGrid.appendChild(card);
     });
   }
 
-  elements.btnRefreshToday.addEventListener('click', fetchTodayRecords);
+  function updateQRLegendCounts() {
+    const availableCount = qrCodeList.filter(q => q.status === 'available').length;
+    const inuseCount = qrCodeList.filter(q => q.status === 'in_use').length;
+    
+    elements.countAvailableQr.textContent = availableCount;
+    elements.countInuseQr.textContent = inuseCount;
+    elements.countTotalQr.textContent = qrCodeList.length;
+  }
+
+  // QR Details Dialog binding
+  let activeSelectedQR = null;
+
+  function openQRDetailModal(q) {
+    activeSelectedQR = q;
+    
+    elements.qrModalCodeName.textContent = q.code;
+    elements.qrModalImage.src = `${apiBaseUrl}/api/qrcodes/${q.code}/image`;
+    
+    // Reset Badges
+    elements.qrModalStatusBadge.className = `qr-status-badge ${q.status}`;
+    elements.qrModalStatusBadge.textContent = q.status === 'available' ? 'Available' : 'In-Use';
+    
+    // Reset Admin Form Pass
+    elements.qrModalAdminPass.value = '';
+    
+    if (q.status === 'available') {
+      elements.qrModalStateAvailable.style.display = 'block';
+      elements.qrModalStateInuse.style.display = 'none';
+    } else {
+      elements.qrModalStateAvailable.style.display = 'none';
+      elements.qrModalStateInuse.style.display = 'block';
+      
+      const d = q.details || {};
+      elements.qrModalLblTyreCode.textContent = d.code || '-';
+      elements.qrModalLblArea.textContent = d.area || '-';
+      elements.qrModalLblStorage.textContent = d.storage_location || '-';
+      elements.qrModalLblWeight.textContent = `${(d.qty_in || 0).toFixed(1)} กิโลกรัม`;
+      
+      const dateStr = d.date ? new Date(d.date).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+      elements.qrModalLblDate.textContent = dateStr;
+      elements.qrModalLblNotes.textContent = d.notes || '-';
+    }
+    
+    elements.qrDetailModal.classList.add('active');
+  }
+
+  function closeQRDetailModal() {
+    elements.qrDetailModal.classList.remove('active');
+    activeSelectedQR = null;
+  }
+
+  elements.btnCloseQrModal.addEventListener('click', closeQRDetailModal);
+
+  // Admin OUT form submission
+  elements.qrModalOutForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!activeSelectedQR) return;
+    
+    const password = elements.qrModalAdminPass.value.trim();
+    if (!password) {
+      showToast('กรุณากรอกรหัสผ่านผู้ดูแลระบบ', 'warning');
+      return;
+    }
+    
+    try {
+      const submitBtn = document.getElementById('btn-qr-modal-submit-out');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังดำเนินการ...';
+      
+      const res = await fetch(`${apiBaseUrl}/api/qrcodes/scan-out`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: activeSelectedQR.code,
+          password: password
+        })
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to clear QR Code');
+      }
+      
+      showToast(`ทำรายการ OUT รหัส ${activeSelectedQR.code} สำเร็จ!`, 'success');
+      closeQRDetailModal();
+      fetchQRInventory(); // Refresh grid
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || 'รหัสผ่านไม่ถูกต้อง หรือเกิดข้อผิดพลาด', 'danger');
+    } finally {
+      const submitBtn = document.getElementById('btn-qr-modal-submit-out');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> ยืนยัน OUT';
+    }
+  });
+
+  // Bind Grid controls search & filter
+  elements.qrSearchInput.addEventListener('input', renderQRInventoryGrid);
+
+  elements.btnRefreshInventory.addEventListener('click', fetchQRInventory);
+
+  // Filter click handlers
+  const filterBtns = [elements.btnFilterAll, elements.btnFilterAvailable, elements.btnFilterInuse];
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilterStatus = btn.getAttribute('data-status');
+      renderQRInventoryGrid();
+    });
+  });
+
+  // Print sheets setup
+  elements.btnOpenPrintModal.addEventListener('click', () => {
+    elements.qrPrintModal.classList.add('active');
+  });
+  
+  elements.btnClosePrintModal.addEventListener('click', () => {
+    elements.qrPrintModal.classList.remove('active');
+  });
+
+  elements.btnGeneratePrintSheet.addEventListener('click', () => {
+    const start = parseInt(elements.btnPrintStartNum.value) || 1;
+    const end = parseInt(elements.btnPrintEndNum.value) || 50;
+    
+    if (start < 1 || end > 500 || start > end) {
+      alert('กรุณาระบุช่วงตัวเลขที่ถูกต้อง (1 - 500)');
+      return;
+    }
+    
+    elements.qrPrintModal.classList.remove('active');
+    
+    const printWindow = window.open('', '_blank');
+    let cardsHTML = '';
+    
+    for (let i = start; i <= end; i++) {
+      const paddedNum = String(i).padStart(3, '0');
+      const qrName = `QR-${paddedNum}`;
+      const qrImgUrl = `${window.location.origin}/api/qrcodes/${qrName}/image`;
+      
+      cardsHTML += `
+        <div class="qr-card">
+          <div class="card-brand">WORKAWAY BTA</div>
+          <div class="qr-wrapper">
+            <img src="${qrImgUrl}" alt="${qrName}">
+          </div>
+          <div class="card-code">${qrName}</div>
+          <div class="card-footer">ยิงกล้องมือถือเพื่อทำรายการ IN/OUT</div>
+        </div>
+      `;
+    }
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Print QR Sheet: ${start} - ${end}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+          body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Sarabun', sans-serif;
+            background: #fff;
+            color: #000;
+          }
+          .no-print {
+            margin-bottom: 20px;
+            text-align: center;
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+          }
+          .print-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 15px;
+          }
+          .qr-card {
+            border: 2px dashed #333;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            page-break-inside: avoid;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #fff;
+          }
+          .card-brand {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: #555;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+          }
+          .qr-wrapper {
+            width: 140px;
+            height: 140px;
+            margin: 5px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          .qr-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+          }
+          .card-code {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #000;
+            margin: 2px 0;
+          }
+          .card-footer {
+            font-size: 8px;
+            color: #666;
+            margin-top: 2px;
+          }
+          @media print {
+            .no-print {
+              display: none;
+            }
+            body {
+              padding: 0;
+            }
+            .print-grid {
+              grid-template-columns: repeat(4, 1fr);
+              gap: 10px;
+            }
+            .qr-card {
+              border: 1px solid #000;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; font-weight: bold; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            🖨️ คลิกสั่งพิมพ์แผ่นเอกสาร (Print Sheet)
+          </button>
+          <p style="font-size: 12px; color: #555; margin-top: 8px; margin-bottom: 0;">ตั้งค่าหน้ากระดาษเป็นกระดาษแนวตั้ง และเปิดภาพพื้นหลัง / กราฟิกพื้นหลัง (Background graphics)</p>
+        </div>
+        <div class="print-grid">
+          ${cardsHTML}
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  });
 
   // ==========================================================================
   // HISTORICAL RECORDS & FILTERING
@@ -911,11 +935,12 @@ document.addEventListener('DOMContentLoaded', () => {
       showToast('ลบรายการสำเร็จเรียบร้อย', 'success');
       
       // Refresh active tables and dashboard
-      if (currentActiveTab === 'record') {
-        fetchTodayRecords();
+      if (currentActiveTab === 'qrinventory') {
+        fetchQRInventory();
       } else if (currentActiveTab === 'history') {
         fetchHistoryRecords();
       }
+      fetchDashboardSummary();
     } catch (e) {
       console.error(e);
       showToast('ไม่สามารถลบรายการได้สำเร็จ', 'danger');
@@ -979,11 +1004,12 @@ document.addEventListener('DOMContentLoaded', () => {
       closeEditModal();
 
       // Refresh corresponding logs
-      if (currentActiveTab === 'record') {
-        fetchTodayRecords();
+      if (currentActiveTab === 'qrinventory') {
+        fetchQRInventory();
       } else if (currentActiveTab === 'history') {
         fetchHistoryRecords();
       }
+      fetchDashboardSummary();
     } catch (e) {
       console.error(e);
       showToast('เกิดข้อผิดพลาดในการอัปเดตข้อมูล', 'danger');
@@ -1001,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     try {
       // Define CSV headers in Thai with English equivalents for standard excel loading
-      const headers = ['วันที่บันทึก (Date)', 'พื้นที่การผลิต (Area)', 'สถานที่จัดเก็บ (Storage)', 'รหัสยาง (Tyre Code)', 'ประเภทอายุยาง (Category)', 'นำเข้า IN (kg)', 'เคลียร์ออก OUT (kg)', 'หมายเหตุ (Notes)'];
+      const headers = ['วันที่บันทึก (Date)', 'พื้นที่การผลิต (Area)', 'สถานที่จัดเก็บ (Storage)', 'รหัสยาง (Tyre Code)', 'ประเภทอายุยาง (Category)', 'นำเข้า IN (kg)', 'เคลียร์ออก OUT (kg)', 'หมายเหตุ (Notes)', 'รหัส QR Code'];
       
       const csvRows = [headers.join(',')];
 
@@ -1020,7 +1046,8 @@ document.addEventListener('DOMContentLoaded', () => {
           `"${categoryThai}"`,
           r.qty_in,
           r.qty_out,
-          `"${(r.notes || '').replace(/"/g, '""')}"` // escape double quotes
+          `"${(r.notes || '').replace(/"/g, '""')}"`, // escape double quotes
+          `"${r.qr_code || '-'}"`
         ];
         csvRows.push(row.join(','));
       });

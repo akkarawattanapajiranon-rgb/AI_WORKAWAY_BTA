@@ -33,9 +33,9 @@
           <i class="fa-solid fa-chart-line"></i>
           <span>แดชบอร์ดสรุปผล</span>
         </a>
-        <a href="#record" class="menu-item" id="nav-record">
-          <i class="fa-solid fa-pen-to-square"></i>
-          <span>บันทึกข้อมูลรายวัน</span>
+        <a href="#qrinventory" class="menu-item" id="nav-qrinventory">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>คลังและพิมพ์ QR Code</span>
         </a>
         <a href="#history" class="menu-item" id="nav-history">
           <i class="fa-solid fa-table-list"></i>
@@ -569,6 +569,126 @@
       </div>
     </main>
 
+  </div>
+
+  <!-- POPUP MODAL: QR CODE DETAILS & ACTION -->
+  <div class="modal-overlay" id="qr-detail-modal">
+    <div class="modal-card qr-modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-qrcode text-accent"></i> รายละเอียดคิวอาร์โค้ด</h3>
+        <button class="modal-close-btn" id="btn-close-qr-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="qr-modal-body">
+        <div class="qr-modal-info-grid">
+          <!-- Left side: QR Image -->
+          <div class="qr-display-section">
+            <div class="qr-img-wrapper">
+              <img id="qr-modal-image" src="" alt="QR Code Image">
+            </div>
+            <span class="qr-code-label" id="qr-modal-code-name">QR-XXX</span>
+            <span class="qr-status-badge" id="qr-modal-status-badge">Available</span>
+          </div>
+          
+          <!-- Right side: Data or Instructions -->
+          <div class="qr-data-section">
+            <!-- State 1: Available -->
+            <div id="qr-modal-state-available" style="display: none;">
+              <div class="info-alert info-glow">
+                <i class="fa-solid fa-circle-info"></i>
+                <div class="alert-content">
+                  <strong>ว่างและพร้อมใช้ (Available)</strong>
+                  <p>QR Code รหัสนี้พร้อมสำหรับนำเข้ายางชิ้นงานใหม่ ยิงกล้องมือถือประจำไลน์ผลิตเพื่อป้อนข้อมูลได้ทันที</p>
+                </div>
+              </div>
+              <div class="scan-instructions-box">
+                <h5>ขั้นตอนสำหรับไลน์ผลิต:</h5>
+                <ol>
+                  <li>พิมพ์ภาพ QR Code นี้ออกมาติดแผ่นเหล็กหน้างาน</li>
+                  <li>เมื่อมีเศษยางตกค้าง (Workaway) ให้พนักงานใช้กล้องโทรศัพท์ยิงสแกน</li>
+                  <li>กรอกรายละเอียดชิ้นงาน (รหัสยาง แผนกที่ยิง และน้ำหนัก) แล้วบันทึก</li>
+                  <li>ระบบส่วนกลางจะล็อคสถานะ QR นี้เป็น "ใช้งานอยู่" ทันที</li>
+                </ol>
+              </div>
+            </div>
+            
+            <!-- State 2: In Use -->
+            <div id="qr-modal-state-inuse" style="display: none;">
+              <div class="status-box-glow">
+                <div class="status-title"><i class="fa-solid fa-hourglass-half text-warning"></i> รายละเอียดชิ้นงานในคลัง</div>
+                <div class="status-detail-row">
+                  <span class="detail-label">รหัสยาง (Tyre Code):</span>
+                  <span class="detail-value text-success" id="qr-modal-lbl-tyre-code">-</span>
+                </div>
+                <div class="status-detail-row">
+                  <span class="detail-label">แผนกต้นทาง (Area):</span>
+                  <span class="detail-value" id="qr-modal-lbl-area">-</span>
+                </div>
+                <div class="status-detail-row">
+                  <span class="detail-label">คลังจัดเก็บ (Storage):</span>
+                  <span class="detail-value" id="qr-modal-lbl-storage">-</span>
+                </div>
+                <div class="status-detail-row">
+                  <span class="detail-label">น้ำหนักปัจจุบัน:</span>
+                  <span class="detail-value text-success" id="qr-modal-lbl-weight">-</span>
+                </div>
+                <div class="status-detail-row">
+                  <span class="detail-label">วันที่ยิงบันทึก (IN):</span>
+                  <span class="detail-value" id="qr-modal-lbl-date">-</span>
+                </div>
+                <div class="status-detail-row">
+                  <span class="detail-label">หมายเหตุ:</span>
+                  <span class="detail-value text-muted" id="qr-modal-lbl-notes" style="font-size: 11px;">-</span>
+                </div>
+              </div>
+              
+              <!-- Admin Check out form -->
+              <form id="qr-modal-out-form" class="qr-admin-out-form" autocomplete="off">
+                <h5><i class="fa-solid fa-lock text-warning"></i> เคลียร์ออกนำไปใช้งาน (OUT)</h5>
+                <p class="text-muted">กรอกรหัสผ่านผู้ดูแลระบบ (Admin Password: 1234) เพื่อเคลียร์ออกและเวียน QR กลับสู่ระบบ</p>
+                <div class="admin-password-group">
+                  <input type="password" id="qr-modal-admin-pass" placeholder="กรอกรหัสผ่าน..." required autocomplete="new-password">
+                  <button type="submit" class="btn btn-warning" id="btn-qr-modal-submit-out">
+                    <i class="fa-solid fa-circle-check"></i> ยืนยัน OUT
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP MODAL: PRINT CONFIG -->
+  <div class="modal-overlay" id="qr-print-modal">
+    <div class="modal-card print-modal-card">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-print text-accent"></i> ตั้งค่าการสั่งพิมพ์แผ่น QR Code</h3>
+        <button class="modal-close-btn" id="btn-close-print-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="print-modal-body">
+        <div class="print-setup-form">
+          <p class="text-muted">ระบุช่วงของรหัส QR Code (ตั้งแต่ 1 ถึง 500) ที่ท่านต้องการพิมพ์ลงแผ่นป้ายสำหรับติดหน้างาน</p>
+          <div class="setup-grid">
+            <div class="form-group">
+              <label for="print-start-num">เริ่มต้นที่รหัสลำดับ (1 - 500)</label>
+              <input type="number" id="print-start-num" min="1" max="500" value="1">
+            </div>
+            <div class="form-group">
+              <label for="print-end-num">สิ้นสุดที่รหัสลำดับ (1 - 500)</label>
+              <input type="number" id="print-end-num" min="1" max="500" value="50">
+            </div>
+          </div>
+          <div class="setup-info">
+            <span class="badge badge-info"><i class="fa-solid fa-circle-info"></i> คำแนะนำความสวยงาม</span>
+            <p class="text-muted">หน้านี้ได้รับการปรับขนาด `@media print` อย่างลงตัว การ์ดบาร์โค้ดแต่ละใบจะมีขนาดพอเหมาะสำหรับตัดแปะกล่อง หรือเหล็กประจำพื้นที่สติกเกอร์หน้างาน</p>
+          </div>
+          <button class="btn btn-gradient btn-large" id="btn-generate-print-sheet" style="margin-top: 15px;">
+            <i class="fa-solid fa-qrcode"></i> สร้างแผ่นบาร์โค้ดสำหรับพิมพ์ (Generate Sheet)
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- POPUP MODAL: EDIT RECORD -->

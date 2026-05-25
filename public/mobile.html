@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workaway Mobile Scanner</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* Premium Mobile CSS Reset & Variables */
+    :root {
+      --bg-mobile: #08090d;
+      --bg-glass: rgba(18, 20, 32, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      
+      --primary: hsl(239, 84%, 67%);
+      --primary-glow: rgba(99, 102, 241, 0.3);
+      --accent-cyan: hsl(190, 90%, 50%);
+      --accent-cyan-glow: rgba(6, 182, 212, 0.3);
+      
+      --success: hsl(142, 70%, 45%);
+      --warning: hsl(38, 92%, 50%);
+      --danger: hsl(350, 89%, 60%);
+      
+      --radius: 16px;
+      --font-family: 'Inter', 'Sarabun', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-mobile);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(6, 182, 212, 0.12) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand i {
+      font-size: 24px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text h1 {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .brand-text span {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .qr-badge {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan-glow);
+    }
+
+    /* Card Panels */
+    .card {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 25px 20px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Form Elements */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .form-group label i {
+      color: var(--accent-cyan);
+    }
+
+    input, select, textarea {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--text-main);
+      font-size: 14px;
+      font-weight: 500;
+      width: 100%;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    .disabled-input {
+      background: rgba(255, 255, 255, 0.02) !important;
+      color: var(--text-muted) !important;
+      cursor: not-allowed;
+    }
+
+    /* Autocomplete dropdown for mobile */
+    .autocomplete-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #11121d;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      margin-top: 5px;
+      display: none;
+    }
+
+    .autocomplete-item {
+      padding: 14px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .autocomplete-item:hover {
+      background: var(--primary);
+    }
+
+    /* Status Box for Occupied QR */
+    .status-box {
+      border-left: 4px solid var(--warning);
+      background: rgba(245, 158, 11, 0.05);
+      padding: 16px;
+      border-radius: 6px;
+      margin-bottom: 22px;
+    }
+
+    .status-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--warning);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .status-detail-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      padding-bottom: 6px;
+    }
+
+    .status-detail-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+    }
+
+    .detail-value {
+      font-weight: 600;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 15px 24px;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      width: 100%;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #0f172a;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #0f172a;
+    }
+
+    .btn-warning:hover {
+      box-shadow: 0 0 15px var(--warning-glow);
+    }
+
+    .btn-secondary-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    .btn-secondary-outline:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Success / Error Overlay Screens */
+    .screen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--bg-mobile);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      animation: fadeIn 0.4s ease-out;
+    }
+
+    .screen-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      margin-bottom: 24px;
+    }
+
+    .screen-icon.success {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 2px solid var(--success);
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .screen-icon.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      border: 2px solid var(--danger);
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+
+    .screen-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .screen-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 30px;
+      max-width: 320px;
+    }
+
+    /* Placeholder screen */
+    .placeholder-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      gap: 15px;
+      flex-grow: 1;
+    }
+
+    .placeholder-screen i {
+      font-size: 56px;
+      background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 4px 12px var(--primary-glow));
+    }
+
+    .placeholder-screen h2 {
+      font-size: 18px;
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .placeholder-screen p {
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 280px;
+    }
+
+    /* Modal dialog */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal {
+      background: #121420;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 380px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--warning);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- BRAND HEADER -->
+    <header>
+      <div class="brand">
+        <i class="fa-solid fa-qrcode"></i>
+        <div class="brand-text">
+          <h1>WORKAWAY</h1>
+          <span>BTA mobile scanner</span>
+        </div>
+      </div>
+      <div class="qr-badge" id="qr-code-badge">QR-XXX</div>
+    </header>
+
+    <!-- LOADING SCREEN -->
+    <div id="loader-panel" class="card" style="text-align: center; padding: 40px 20px; display: none;">
+      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 32px; color: var(--accent-cyan); margin-bottom: 15px;"></i>
+      <p style="color: var(--text-muted); font-size: 13px;">กำลังตรวจสอบพิกัด QR Code...</p>
+    </div>
+
+    <!-- ERROR / INVALID STATE SCREEN -->
+    <div id="no-qr-panel" class="placeholder-screen">
+      <i class="fa-solid fa-qrcode"></i>
+      <h2>กรุณาสแกน QR Code หน้างาน</h2>
+      <p class="text-muted">โปรดยิงกล้องโทรศัพท์สแกน QR Code ประจำแผ่นของยางเพื่อทำการบันทึกยอดนำเข้า (IN) หรือเคลียร์ใช้แล้ว (OUT)</p>
+    </div>
+
+    <!-- VIEW 1: RECORD IN FORM (For AVAILABLE status) -->
+    <div id="view-available-in" class="card" style="display: none;">
+      <div class="card-title">
+        <i class="fa-solid fa-circle-plus" style="color: var(--success);"></i>
+        <span>บันทึกชิ้นงานนำเข้า (IN)</span>
+      </div>
+
+      <form id="mobile-in-form" autocomplete="off">
+        <!-- Date (Readonly today) -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-calendar-day"></i> วันที่ทำรายการ</label>
+          <input type="text" id="in-date" class="disabled-input" readonly>
+        </div>
+
+        <!-- Area Selector -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-industry"></i> แผนกที่ยิง (Area)</label>
+          <select id="in-area" required>
+            <option value="" disabled selected>-- เลือกแผนกที่ผลิต --</option>
+            <option value="QUAD">เครื่อง QUAD</option>
+            <option value="Tuber">Tuber</option>
+            <option value="4roll2">4roll2</option>
+            <option value="4roll1">4roll1</option>
+            <option value="BTB-WBR">BTB-WBR</option>
+            <option value="Sapphire">Sapphire</option>
+            <option value="BTB-Aero">BTB-Aero</option>
+          </select>
+        </div>
+
+        <!-- Storage Location -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-warehouse"></i> สถานที่จัดเก็บ (Storage)</label>
+          <select id="in-storage" required>
+            <option value="" disabled selected>-- เลือกตำแหน่งเก็บ --</option>
+            <option value="QUAD">QUAD</option>
+            <option value="TUBER">TUBER</option>
+            <option value="WA1">WA1</option>
+            <option value="WA 2">WA 2</option>
+            <option value="WA3">WA3</option>
+          </select>
+        </div>
+
+        <!-- Tyre Code Autocomplete -->
+        <div class="form-group relative">
+          <label><i class="fa-solid fa-barcode"></i> รหัสยาง (Tyre Code)</label>
+          <input type="text" id="in-code" placeholder="พิมพ์เพื่อค้นหา..." required>
+          <div class="autocomplete-list" id="in-autocomplete-list"></div>
+        </div>
+
+        <!-- Weight -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-weight-hanging"></i> น้ำหนัก (กิโลกรัม)</label>
+          <input type="number" step="0.1" min="0.1" id="in-weight" placeholder="0.0" required>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group">
+          <label><i class="fa-solid fa-comment-dots"></i> หมายเหตุ</label>
+          <textarea id="in-notes" rows="2" placeholder="รายละเอียดชิ้นยางตกค้าง (ถ้ามี)..."></textarea>
+        </div>
+
+        <!-- Submit IN -->
+        <button type="submit" class="btn btn-primary" id="btn-submit-in">
+          <i class="fa-solid fa-cloud-arrow-up"></i> บันทึกนำเข้า (IN)
+        </button>
+      </form>
+    </div>
+
+    <!-- VIEW 2: ACTIVE CARD (For IN_USE status) -->
+    <div id="view-occupied-out" class="card" style="display: none;">
+      <div class="card-title">
+        <i class="fa-solid fa-box-open" style="color: var(--warning);"></i>
+        <span>ข้อมูลชิ้นยางค้างสะสม</span>
+      </div>
+
+      <div class="status-box">
+        <div class="status-title">สถานะ: กำลังค้างอยู่ในระบบ (In-Use)</div>
+        
+        <div class="status-detail-row">
+          <span class="detail-label">รหัสยาง (Tyre Code):</span>
+          <span class="detail-value text-success" id="lbl-tyre-code">K33M1</span>
+        </div>
+        <div class="status-detail-row">
+          <span class="detail-label">แผนกต้นทาง (Area):</span>
+          <span class="detail-value" id="lbl-area">QUAD</span>
+        </div>
+        <div class="status-detail-row">
+          <span class="detail-label">ตำแหน่งคลัง (Storage):</span>
+          <span class="detail-value" id="lbl-storage">WA1</span>
+        </div>
+        <div class="status-detail-row">
+          <span class="detail-label">น้ำหนักสุทธิ:</span>
+          <span class="detail-value text-success" id="lbl-weight">120.0 กก.</span>
+        </div>
+        <div class="status-detail-row">
+          <span class="detail-label">วันที่บันทึกเข้า:</span>
+          <span class="detail-value text-muted" id="lbl-date">24 May 2026</span>
+        </div>
+        <div class="status-detail-row">
+          <span class="detail-label">หมายเหตุ:</span>
+          <span class="detail-value text-muted" id="lbl-notes" style="font-size: 11px;">-</span>
+        </div>
+      </div>
+
+      <!-- Trigger OUT Modal -->
+      <button type="button" class="btn btn-warning" id="btn-trigger-out">
+        <i class="fa-solid fa-circle-check"></i> เคลียร์ออก / นำไปใช้ (OUT)
+      </button>
+    </div>
+
+  </div>
+
+  <!-- PASSWORD GATE DIALOG -->
+  <div class="modal-overlay" id="password-modal">
+    <div class="modal">
+      <div class="modal-title">
+        <i class="fa-solid fa-lock"></i>
+        <span>สิทธิ์ผู้ดูแลระบบ (Admin Only)</span>
+      </div>
+      <p style="color: var(--text-muted); font-size: 12px; line-height: 1.5; margin-bottom: 15px;">
+        กรุณากรอกรหัสผ่านผู้ดูแลระบบ (Admin Password) เพื่อทำการยิงเคลียร์ยาง (OUT) และปลดล็อก QR Code นี้ให้กลับมาว่าง
+      </p>
+      
+      <div class="form-group">
+        <input type="password" id="admin-pass" placeholder="กรอกรหัสผ่าน..." autocomplete="new-password">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary-outline" id="btn-close-modal" style="flex:1; padding: 10px;">ยกเลิก</button>
+        <button type="button" class="btn btn-warning" id="btn-submit-out" style="flex:1; padding: 10px;">ยืนยัน OUT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN OVERLAYS (SUCCESS / ERROR SCREENS) -->
+  <div class="screen-overlay" id="screen-success">
+    <div class="screen-icon success">
+      <i class="fa-solid fa-check"></i>
+    </div>
+    <h2 class="screen-title" id="success-title">บันทึกข้อมูลสำเร็จ!</h2>
+    <p class="screen-desc" id="success-desc">รายการของคุณถูกอัปเดตลงเซิร์ฟเวอร์เรียบร้อย และสถานะบาร์โค้ดได้รับการเปลี่ยนแปลง</p>
+    <button class="btn btn-primary" id="btn-success-close">ตกลง</button>
+  </div>
+
+  <div class="screen-overlay" id="screen-error">
+    <div class="screen-icon error">
+      <i class="fa-solid fa-xmark"></i>
+    </div>
+    <h2 class="screen-title">บันทึกล้มเหลว!</h2>
+    <p class="screen-desc" id="error-desc">เกิดข้อผิดพลาดในการดึงข้อมูลหรือสิทธิการเข้าถึงของระบบ กรุณาลองใหม่อีกครั้ง</p>
+    <button class="btn btn-warning" id="btn-error-close">ลองอีกครั้ง</button>
+  </div>
+
+  <!-- APPLICATION CORE LOGIC -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // API Base Path
+      const apiBase = '';
+      
+      // Parse QR parameter from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const qrCode = urlParams.get('qr');
+      
+      // Elements
+      const panels = {
+        badge: document.getElementById('qr-code-badge'),
+        loader: document.getElementById('loader-panel'),
+        noQr: document.getElementById('no-qr-panel'),
+        inView: document.getElementById('view-available-in'),
+        outView: document.getElementById('view-occupied-out'),
+        successScreen: document.getElementById('screen-success'),
+        errorScreen: document.getElementById('screen-error'),
+        successTitle: document.getElementById('success-title'),
+        successDesc: document.getElementById('success-desc'),
+        errorDesc: document.getElementById('error-desc'),
+        modal: document.getElementById('password-modal')
+      };
+
+      const forms = {
+        in: document.getElementById('mobile-in-form'),
+        inDate: document.getElementById('in-date'),
+        inArea: document.getElementById('in-area'),
+        inStorage: document.getElementById('in-storage'),
+        inCode: document.getElementById('in-code'),
+        inWeight: document.getElementById('in-weight'),
+        inNotes: document.getElementById('in-notes'),
+        autocompleteList: document.getElementById('in-autocomplete-list'),
+        btnIn: document.getElementById('btn-submit-in'),
+        
+        lblCode: document.getElementById('lbl-tyre-code'),
+        lblArea: document.getElementById('lbl-area'),
+        lblStorage: document.getElementById('lbl-storage'),
+        lblWeight: document.getElementById('lbl-weight'),
+        lblDate: document.getElementById('lbl-date'),
+        lblNotes: document.getElementById('lbl-notes'),
+        
+        btnTriggerOut: document.getElementById('btn-trigger-out'),
+        btnConfirmOut: document.getElementById('btn-submit-out'),
+        btnCancelOut: document.getElementById('btn-close-modal'),
+        inputPassword: document.getElementById('admin-pass')
+      };
+
+      let tyreCodes = [];
+
+      // Set today's date in form
+      const todayStr = new Date().toISOString().split('T')[0];
+      forms.inDate.value = todayStr;
+
+      // Handle Overlay Closers
+      document.getElementById('btn-success-close').addEventListener('click', () => {
+        panels.successScreen.style.display = 'none';
+        window.location.reload(); // Reload to fetch fresh status!
+      });
+
+      document.getElementById('btn-error-close').addEventListener('click', () => {
+        panels.errorScreen.style.display = 'none';
+      });
+
+      if (!qrCode) {
+        // No QR scanned
+        panels.noQr.style.display = 'flex';
+        panels.badge.style.display = 'none';
+        return;
+      }
+
+      // If QR exists, initiate status fetch!
+      panels.badge.textContent = qrCode.toUpperCase();
+      checkQRStatus();
+
+      // Fetch Metadata & Status
+      async function checkQRStatus() {
+        try {
+          panels.noQr.style.display = 'none';
+          panels.loader.style.display = 'block';
+          panels.inView.style.display = 'none';
+          panels.outView.style.display = 'none';
+
+          // 1. Fetch metadata (Tyre Codes)
+          const metaRes = await fetch(`${apiBase}/api/metadata`);
+          if (metaRes.ok) {
+            const meta = await metaRes.json();
+            tyreCodes = meta.tyre_codes || [];
+            setupAutocomplete();
+          }
+
+          // 2. Fetch specific QR status
+          const qrRes = await fetch(`${apiBase}/api/qrcodes/${qrCode}`);
+          if (!qrRes.ok) {
+            throw new Error('คิวอาร์โค้ดนี้ไม่มีอยู่ในทะเบียนระบบ');
+          }
+
+          const qrInfo = await qrRes.json();
+          panels.loader.style.display = 'none';
+
+          if (qrInfo.status === 'available') {
+            // AVAILABLE -> Show IN form!
+            panels.inView.style.display = 'block';
+          } else {
+            // IN USE -> Show details & OUT trigger!
+            panels.outView.style.display = 'block';
+            
+            const d = qrInfo.details || {};
+            forms.lblCode.textContent = d.code || 'ไม่ทราบรหัส';
+            forms.lblArea.textContent = d.area || 'ไม่ทราบแผนก';
+            forms.lblStorage.textContent = d.storage_location || 'ไม่ระบุ';
+            forms.lblWeight.textContent = `${(d.qty_in || 0).toFixed(1)} กก.`;
+            
+            const dateStr = d.date ? new Date(d.date).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+            forms.lblDate.textContent = dateStr;
+            forms.lblNotes.textContent = d.notes || '-';
+          }
+
+        } catch (error) {
+          console.error(error);
+          panels.loader.style.display = 'none';
+          panels.errorDesc.textContent = error.message || 'เกิดข้อผิดพลาดในการดึงข้อมูลเซิร์ฟเวอร์';
+          panels.errorScreen.style.display = 'flex';
+        }
+      }
+
+      // setup autocomplete list
+      function setupAutocomplete() {
+        const input = forms.inCode;
+        const list = forms.autocompleteList;
+
+        input.addEventListener('input', () => {
+          const val = input.value.trim().toUpperCase();
+          list.innerHTML = '';
+
+          if (!val) {
+            list.style.display = 'none';
+            return;
+          }
+
+          const matches = tyreCodes.filter(c => c.includes(val));
+          if (matches.length === 0) {
+            list.style.display = 'none';
+            return;
+          }
+
+          matches.forEach(match => {
+            const div = document.createElement('div');
+            div.className = 'autocomplete-item';
+            div.textContent = match;
+            div.addEventListener('click', () => {
+              input.value = match;
+              list.style.display = 'none';
+            });
+            list.appendChild(div);
+          });
+
+          list.style.display = 'block';
+        });
+
+        // Close on blur
+        document.addEventListener('click', (e) => {
+          if (e.target !== input && e.target !== list) {
+            list.style.display = 'none';
+          }
+        });
+      }
+
+      // ==========================================================================
+      // SCAN-IN SUBMISSION
+      // ==========================================================================
+      forms.in.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+          code: qrCode,
+          date: forms.inDate.value,
+          area: forms.inArea.value,
+          storage_location: forms.inStorage.value,
+          tyre_code: forms.inCode.value.trim().toUpperCase(),
+          qty_in: parseFloat(forms.inWeight.value) || 0,
+          notes: forms.inNotes.value.trim()
+        };
+
+        // Extra check
+        if (!tyreCodes.includes(data.tyre_code)) {
+          alert('รหัสยางต้องถูกต้องตามรายการมาตรฐาน 46 รหัสเท่านั้น');
+          return;
+        }
+
+        try {
+          forms.btnIn.disabled = true;
+          forms.btnIn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> กำลังบันทึก...';
+
+          const res = await fetch(`${apiBase}/api/qrcodes/scan-in`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to post scan-in');
+          }
+
+          panels.successTitle.textContent = 'บันทึกนำเข้า (IN) สำเร็จ!';
+          panels.successDesc.textContent = `รหัสยาง ${data.tyre_code} ถูกผูกเข้าระบบกับ QR Code ${qrCode.toUpperCase()} และล็อกสถานะกำลังค้างใช้งานแล้ว`;
+          panels.successScreen.style.display = 'flex';
+
+        } catch (error) {
+          console.error(error);
+          panels.errorDesc.textContent = error.message || 'บันทึกข้อมูลล้มเหลว';
+          panels.errorScreen.style.display = 'flex';
+        } finally {
+          forms.btnIn.disabled = false;
+          forms.btnIn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> บันทึกนำเข้า (IN)';
+        }
+      });
+
+      // ==========================================================================
+      // SCAN-OUT TRIGGER & SUBMISSION (ADMIN ONLY)
+      // ==========================================================================
+      forms.btnTriggerOut.addEventListener('click', () => {
+        panels.modal.style.display = 'flex';
+        forms.inputPassword.value = '';
+        forms.inputPassword.focus();
+      });
+
+      forms.btnCancelOut.addEventListener('click', () => {
+        panels.modal.style.display = 'none';
+      });
+
+      forms.btnConfirmOut.addEventListener('click', async () => {
+        const password = forms.inputPassword.value.trim();
+
+        if (!password) {
+          alert('กรุณากรอกรหัสผ่านผู้ดูแลระบบ');
+          return;
+        }
+
+        try {
+          forms.btnConfirmOut.disabled = true;
+          forms.btnConfirmOut.textContent = 'กำลังเคลียร์...';
+
+          const res = await fetch(`${apiBase}/api/qrcodes/scan-out`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              code: qrCode,
+              password: password
+            })
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Failed to post scan-out');
+          }
+
+          panels.modal.style.display = 'none';
+          panels.successTitle.textContent = 'เคลียร์ยางออก (OUT) สำเร็จ!';
+          panels.successDesc.textContent = `เคลียร์ยางที่ติดอยู่กับ QR Code ${qrCode.toUpperCase()} เรียบร้อยแล้ว ยางถูกดึงออกเพื่อใช้งาน และปลดล็อกบาร์โค้ดให้พร้อมเวียนใช้ซ้ำได้ทันที!`;
+          panels.successScreen.style.display = 'flex';
+
+        } catch (error) {
+          console.error(error);
+          alert(error.message || 'เกิดข้อผิดพลาดในการตรวจสอบรหัสผ่าน');
+        } finally {
+          forms.btnConfirmOut.disabled = false;
+          forms.btnConfirmOut.textContent = 'ยืนยัน OUT';
+        }
+      });
+      
+    });
+  </script>
+
+</body>
+</html>
