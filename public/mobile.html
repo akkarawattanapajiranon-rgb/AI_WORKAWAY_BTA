@@ -558,6 +558,10 @@
           <span class="detail-value text-success" id="lbl-weight">120.0 กก.</span>
         </div>
         <div class="status-detail-row">
+          <span class="detail-label">อายุการจัดเก็บ:</span>
+          <span class="detail-value text-warning" id="lbl-category">-</span>
+        </div>
+        <div class="status-detail-row">
           <span class="detail-label">วันที่บันทึกเข้า:</span>
           <span class="detail-value text-muted" id="lbl-date">24 May 2026</span>
         </div>
@@ -729,6 +733,15 @@
             forms.lblArea.textContent = d.area || 'ไม่ทราบแผนก';
             forms.lblStorage.textContent = d.storage_location || 'ไม่ระบุ';
             forms.lblWeight.textContent = `${(d.qty_in || 0).toFixed(1)} กก.`;
+            
+            // Map category label dynamically
+            let catLabel = 'ของใหม่ (< 7 วัน)';
+            if (d.category === '7-14day') catLabel = 'เกิน 7-14 วัน (ค้างสะสม 7 วัน)';
+            if (d.category === 'over14day') catLabel = 'มากกว่า 14 วัน';
+            if (d.category === 'disposition') catLabel = 'รอตรวจสอบ (Disposition)';
+            
+            const lblCat = document.getElementById('lbl-category');
+            if (lblCat) lblCat.textContent = catLabel;
             
             const dateStr = d.date ? new Date(d.date).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
             forms.lblDate.textContent = dateStr;

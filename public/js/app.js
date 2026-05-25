@@ -539,6 +539,15 @@ document.addEventListener('DOMContentLoaded', () => {
       elements.qrModalLblStorage.textContent = d.storage_location || '-';
       elements.qrModalLblWeight.textContent = `${(d.qty_in || 0).toFixed(1)} กิโลกรัม`;
       
+      // Bind storage age label
+      let catLabel = 'ของใหม่ (< 7 วัน)';
+      if (d.category === '7-14day') catLabel = 'เกิน 7-14 วัน (ค้างสะสม 7 วัน)';
+      if (d.category === 'over14day') catLabel = 'มากกว่า 14 วัน';
+      if (d.category === 'disposition') catLabel = 'รอตรวจสอบ (Disposition)';
+      
+      const lblModalCat = document.getElementById('qr-modal-lbl-category');
+      if (lblModalCat) lblModalCat.textContent = catLabel;
+      
       const dateStr = d.date ? new Date(d.date).toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
       elements.qrModalLblDate.textContent = dateStr;
       elements.qrModalLblNotes.textContent = d.notes || '-';
@@ -813,9 +822,8 @@ document.addEventListener('DOMContentLoaded', () => {
     paginatedRecords.forEach(r => {
       const tr = document.createElement('tr');
       
-      let categoryThai = 'ของใหม่';
-      if (r.category === '7day') categoryThai = 'อยู่มาแล้ว 7 วัน';
-      if (r.category === '7-14day') categoryThai = 'อยู่มาแล้ว 7-14 วัน';
+      let categoryThai = 'ของใหม่ (< 7 วัน)';
+      if (r.category === '7-14day') categoryThai = 'เกิน 7-14 วัน (ค้างสะสม 7 วัน)';
       if (r.category === 'over14day') categoryThai = 'มากกว่า 14 วัน';
       if (r.category === 'disposition') categoryThai = 'รอตรวจสอบ (Disposition)';
 

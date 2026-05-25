@@ -62,6 +62,30 @@ const CATEGORIES = ['new', '7day', '7-14day', 'over14day', 'disposition'];
 // Admin Config
 const ADMIN_PASSWORD = '1234';
 
+// Dynamic aging category helper based on record date
+function getDynamicCategory(record) {
+  // If the record is an active IN record (has qr_code, qty_in > 0, qty_out === 0, and not manually in disposition)
+  if (record.qr_code && record.qty_in > 0 && record.qty_out === 0 && record.category !== 'disposition') {
+    try {
+      const recordDate = new Date(record.date + 'T00:00:00');
+      const todayDate = new Date(new Date().toISOString().split('T')[0] + 'T00:00:00');
+      const diffTime = Math.abs(todayDate - recordDate);
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays >= 7 && diffDays <= 14) {
+        return '7-14day';
+      } else if (diffDays > 14) {
+        return 'over14day';
+      } else {
+        return 'new'; // Under 7 days is considered "new" (ของใหม่)
+      }
+    } catch (e) {
+      console.error('Error calculating dynamic category:', e);
+    }
+  }
+  return record.category;
+}
+
 // Helper functions for DB operations
 function readDatabase() {
   try {
@@ -70,7 +94,13 @@ function readDatabase() {
       return [];
     }
     const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data || '[]');
+    const records = JSON.parse(data || '[]');
+    
+    // Map records to automatically apply dynamic aging categories
+    return records.map(r => ({
+      ...r,
+      category: getDynamicCategory(r)
+    }));
   } catch (error) {
     console.error('Error reading database, attempting to load backup...', error);
     try {
